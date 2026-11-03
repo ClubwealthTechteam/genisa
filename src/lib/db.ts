@@ -1,8 +1,8 @@
 import "server-only";
 import postgres from "postgres";
 
-// One connection pool per server instance. On Vercel, DATABASE_URL is Supabase's
-// transaction pooler, which does not support prepared statements.
+// One connection pool per server instance. On Vercel, DATABASE_URL is Neon's pooled
+// connection, which does not support prepared statements.
 const globalForDb = globalThis as unknown as { genisaSql?: postgres.Sql };
 
 export function db(): postgres.Sql {

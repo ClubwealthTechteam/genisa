@@ -1,13 +1,13 @@
 // Applies the SQL files in db/migrations, in name order, each exactly once.
-// Usage: DATABASE_URL_DIRECT=postgres://... npm run db:migrate
+// Usage: DATABASE_URL_UNPOOLED=postgres://... npm run db:migrate
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import postgres from "postgres";
 
-const url = process.env.DATABASE_URL_DIRECT || process.env.DATABASE_URL;
+const url = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL_DIRECT || process.env.DATABASE_URL;
 if (!url) {
-  console.error("Set DATABASE_URL_DIRECT to the direct connection string (port 5432), not the pooler.");
+  console.error("Set DATABASE_URL_UNPOOLED to the database's direct (unpooled) connection string.");
   process.exit(1);
 }
 

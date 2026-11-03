@@ -17,7 +17,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           </Link>
           <Nav />
           <div className={styles.user}>
-            <span className={styles.email}>{user.email}</span>
+            <span className={styles.email}>{user.name}</span>
             <form action={signOut}>
               <button type="submit" className={ui.quiet}>
                 Sign out

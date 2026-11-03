@@ -1,31 +1,38 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { allowedEmails, isAllowed } from "@/lib/auth/allowlist";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { personById } from "@/config/people";
+import { accessCodes, checkCode, clearFailures, lockedUntil, recordFailure } from "@/lib/auth/access-codes";
+import { SESSION_COOKIE, sessionCookieOptions, signSession } from "@/lib/auth/session";
 
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export type SignInState = { error?: string; personId?: string; attempt?: number };
 
-export async function sendSignInLink(formData: FormData) {
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  if (!EMAIL.test(email)) redirect("/sign-in?error=email");
+export async function signIn(prev: SignInState, formData: FormData): Promise<SignInState> {
+  const person = personById(formData.get("person"));
+  const attempt = (prev.attempt ?? 0) + 1;
+  if (!person) return { attempt, error: "Pick your name." };
 
-  // Everyone sees the same "check your email" message, so the page doesn't
-  // reveal who is on the list. Only listed people are actually sent a link.
-  if (isAllowed(email, allowedEmails())) {
-    const supabase = await createSupabaseServerClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      // Accounts are created by invitation in Supabase, never by this form.
-      options: { shouldCreateUser: false },
-    });
-    if (error) console.error("Sign-in link was not sent", { status: error.status, code: error.code });
+  const until = await lockedUntil(person.id);
+  if (until) {
+    const mins = Math.max(1, Math.ceil((until.getTime() - Date.now()) / 60000));
+    return { personId: person.id, attempt, error: `Too many wrong codes. Try again in ${mins} minute${mins > 1 ? "s" : ""}.` };
   }
-  redirect("/sign-in?sent=1");
+
+  const result = checkCode(person.id, formData.get("code"), accessCodes());
+  if (result === "not_set_up") return { personId: person.id, attempt, error: "Sign-in isn't set up yet. GENISA_ACCESS_CODES is missing on Vercel." };
+  if (result === "no_code") return { personId: person.id, attempt, error: "You don't have an access code yet. Ask Tara for yours." };
+  if (result === "wrong") {
+    await recordFailure(person.id);
+    return { personId: person.id, attempt, error: "That access code is wrong." };
+  }
+
+  await clearFailures(person.id);
+  (await cookies()).set(SESSION_COOKIE, signSession(person.id), sessionCookieOptions);
+  redirect("/");
 }
 
 export async function signOut() {
-  const supabase = await createSupabaseServerClient();
-  await supabase.auth.signOut();
+  (await cookies()).delete(SESSION_COOKIE);
   redirect("/sign-in");
 }

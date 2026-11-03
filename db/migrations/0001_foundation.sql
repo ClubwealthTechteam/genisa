@@ -1,10 +1,10 @@
 -- GenISA foundation schema.
 --
--- Everything lives in its own "genisa" schema, so Supabase's public data API
--- (which exposes the "public" schema to the browser key) never sees it. Row level
--- security is also switched on with no policies, so even if the schema were
--- exposed, the browser roles could read nothing. Only the app's server, which
--- connects as the database owner, reads and writes these tables.
+-- Everything lives in its own "genisa" schema. Only the app's server reads and
+-- writes these tables; nothing in the browser connects to the database.
+--
+-- Sized for Neon's free plan (0.5 GB): raw uploaded rows are not copied into
+-- the database, only what happened to each one.
 
 create schema if not exists genisa;
 
@@ -25,12 +25,11 @@ insert into genisa.sources (code, name) values
   ('ai_research',     'GenISA AI research'),
   ('other',           'Other');
 
--- One row per uploaded file. The file itself is kept in storage at storage_path.
+-- One row per uploaded file.
 create table genisa.uploads (
   id               bigint generated always as identity primary key,
   source_code      text not null references genisa.sources (code),
   file_name        text not null,
-  storage_path     text,
   detected_format  text,
   row_count        integer check (row_count >= 0),
   status           text not null default 'received'
@@ -78,20 +77,19 @@ create table genisa.contact_sources (
 
 create index contact_sources_source_idx on genisa.contact_sources (source_code);
 
--- Every row of every upload, kept as it arrived, and what happened to it.
-create table genisa.raw_rows (
-  id               bigint generated always as identity primary key,
+-- What happened to every row of every upload: which contact it became, or why
+-- it was rejected. The row's own values are not kept, to save space.
+create table genisa.upload_rows (
   upload_id        bigint not null references genisa.uploads (id) on delete cascade,
   row_number       integer not null check (row_number >= 1),
-  data             jsonb not null,
   contact_id       bigint references genisa.contacts (id) on delete set null,
-  outcome          text check (outcome in ('new', 'merged', 'rejected')),
+  outcome          text not null check (outcome in ('new', 'merged', 'rejected')),
   reject_reason    text,
-  unique (upload_id, row_number),
+  primary key (upload_id, row_number),
   check ((outcome = 'rejected') = (reject_reason is not null))
 );
 
-create index raw_rows_contact_idx on genisa.raw_rows (contact_id) where contact_id is not null;
+create index upload_rows_contact_idx on genisa.upload_rows (contact_id) where contact_id is not null;
 
 -- A tour is one run of half-day events. Distance and reuse rules are set per tour.
 create table genisa.tours (
@@ -260,7 +258,7 @@ create index attendance_contact_idx on genisa.attendance (contact_id) where cont
 -- Who did what, for exports and other changes that matter later.
 create table genisa.audit_log (
   id           bigint generated always as identity primary key,
-  actor_email  text not null,
+  actor        text not null,
   action       text not null,
   details      jsonb not null default '{}'::jsonb,
   at           timestamptz not null default now()
@@ -268,19 +266,13 @@ create table genisa.audit_log (
 
 create index audit_log_at_idx on genisa.audit_log (at desc);
 
--- Lock the schema away from Supabase's browser-facing roles where they exist.
-do $$
-declare
-  r text;
-  t record;
-begin
-  for t in select tablename from pg_tables where schemaname = 'genisa' loop
-    execute format('alter table genisa.%I enable row level security', t.tablename);
-  end loop;
-  foreach r in array array['anon', 'authenticated'] loop
-    if exists (select 1 from pg_roles where rolname = r) then
-      execute format('revoke all on schema genisa from %I', r);
-      execute format('revoke all on all tables in schema genisa from %I', r);
-    end if;
-  end loop;
-end $$;
+-- Wrong access codes per person, for the 15-minute lockout after five.
+create table genisa.sign_in_failures (
+  person_id       text primary key,
+  failures        integer not null check (failures >= 1),
+  locked_until    timestamptz,
+  last_failed_at  timestamptz not null
+);
+
+-- Nobody but the owner (the app's server) may use the schema.
+revoke all on schema genisa from public;
