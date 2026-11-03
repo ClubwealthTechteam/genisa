@@ -1,0 +1,53 @@
+.button {
+  font: inherit;
+  font-weight: 600;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--accent-fg);
+  cursor: pointer;
+}
+
+.button:hover {
+  filter: brightness(1.08);
+}
+
+.quiet {
+  font: inherit;
+  padding: 6px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.ok {
+  composes: pill;
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+.warn {
+  composes: pill;
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.later {
+  composes: pill;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
