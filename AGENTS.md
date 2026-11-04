@@ -18,4 +18,5 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - The database is Neon's free plan (0.5 GB). Don't store raw uploaded rows or files in it; keep tables lean.
 - Sign-in is per-person access codes (`GENISA_ACCESS_CODES`), checked in `src/lib/auth/`. Add people in `src/config/people.ts`.
 - Contact data is personal data. Never commit real lead files, exports or `.env*` files (other than `.env.example`).
+- Desktop only: design for screens 1100px and wider. Don't add mobile layouts or phone breakpoints.
 - Run `npm run check` before pushing. Set `TEST_DATABASE_URL` to also run the database tests.

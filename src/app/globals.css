@@ -55,6 +55,8 @@ body {
   font-family: var(--font);
   font-size: 15px;
   line-height: 1.55;
+  /* Desktop only: below this width the page scrolls sideways instead of rearranging. */
+  min-width: 1100px;
 }
 
 h1,

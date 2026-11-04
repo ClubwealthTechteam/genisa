@@ -8,13 +8,12 @@
 }
 
 .bar {
-  max-width: 1120px;
+  max-width: 1180px;
   margin: 0 auto;
-  padding: 10px 16px;
+  padding: 10px 32px;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 8px 24px;
+  gap: 24px;
 }
 
 .brand {
@@ -28,7 +27,6 @@
 .nav {
   display: flex;
   gap: 4px;
-  overflow-x: auto;
   flex: 1 1 auto;
   min-width: 0;
 }
@@ -65,9 +63,9 @@
 }
 
 .main {
-  max-width: 1120px;
+  max-width: 1180px;
   margin: 0 auto;
-  padding: 32px 16px 64px;
+  padding: 32px 32px 64px;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -100,7 +98,7 @@
 
 .counts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -150,8 +148,3 @@
   font-size: 0.9rem;
 }
 
-@media (max-width: 640px) {
-  .email {
-    display: none;
-  }
-}
